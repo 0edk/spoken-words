@@ -30,6 +30,9 @@ class ClipsTopology(NoteTopology):
     def custom_css(self, order: int) -> str:
         return ""
 
+    def sort_field(self, order: int) -> int:
+        return 1
+
     @staticmethod
     def next_order(order: Optional[int] = None) -> int:
         return roundup(order or 3, True)
