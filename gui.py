@@ -46,7 +46,6 @@ class SliderWidget(QWidget):
         self.setFixedHeight(60)
         self.endpoints: list[Endpoint] = []
         self._drag_ep: Endpoint | None = None
-        self._last_drag_ep: Endpoint | None = None  # survives mouseRelease for dblclick undo
         self._right_click_ep: Endpoint | None = None
         self._prev_pos = 0.0
         self._dragging = False
@@ -124,10 +123,16 @@ class SliderWidget(QWidget):
             if ep:
                 self._drag_ep      = ep
                 self._prev_pos     = ep.pos
-                self._last_drag_ep = None
                 self._dragging     = True
                 ep.pos = pos
                 self._sort()
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            pos = self._to_pos(event.pos().x())
+            self.endpoints.append(Endpoint(pos))
+            self.endpoints.sort(key=lambda e: e.pos)
+            self._right_click_ep = self._nearest(pos)
+            self.update()
+            self.structure_changed.emit()
         elif event.button() == Qt.MouseButton.RightButton:
             ep = self._nearest(pos)
             if ep:
@@ -136,38 +141,24 @@ class SliderWidget(QWidget):
                 self.update()
                 self.structure_changed.emit()
 
-    def mouseDoubleClickEvent(self, event) -> None:
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
-        # The first press of this double-click already moved _last_drag_ep;
-        # restore it before adding the new endpoint.
-        if self._last_drag_ep is not None:
-            self._last_drag_ep.pos = self._prev_pos
-            self._last_drag_ep = None
-        pos = self._to_pos(event.pos().x())
-        self.endpoints.append(Endpoint(pos))
-        self.endpoints.sort(key=lambda e: e.pos)
-        self.update()
-        self.structure_changed.emit()
-
     def mouseMoveEvent(self, event) -> None:
         if self._dragging and self._drag_ep is not None:
             self._drag_ep.pos = self._to_pos(event.pos().x())
             self._sort()
 
     def mouseReleaseEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
-            self._dragging = False
-            ep = self._drag_ep
-            self._drag_ep = None
-            if ep is not None:
-                self._last_drag_ep = ep   # preserve so dblclick can undo
-                self.mouse_released.emit(self.endpoints.index(ep))
-        elif event.button() == Qt.MouseButton.RightButton:
-            ep = self._right_click_ep
-            self._right_click_ep = None
-            if ep is not None:
-                self.mouse_released.emit(self.endpoints.index(ep))
+        match event.button():
+            case Qt.MouseButton.LeftButton if self._dragging:
+                self._dragging = False
+                ep = self._drag_ep
+                self._drag_ep = None
+                if ep is not None:
+                    self.mouse_released.emit(self.endpoints.index(ep))
+            case Qt.MouseButton.RightButton | Qt.MouseButton.MiddleButton:
+                ep = self._right_click_ep
+                self._right_click_ep = None
+                if ep is not None:
+                    self.mouse_released.emit(self.endpoints.index(ep))
 
     def contextMenuEvent(self, event) -> None:
         event.accept()   # suppress platform menu; right-click handled above
