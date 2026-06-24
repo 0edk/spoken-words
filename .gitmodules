@@ -1,0 +1,3 @@
+[submodule "flashcard_topology"]
+	path = flashcard_topology
+	url = https://github.com/0edk/flashcard-topology

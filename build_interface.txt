@@ -1,0 +1,11 @@
+implement build_interface for a subclass of `TopologyDialog`:
+- get a user-supplied path to an audio file via a file picker
+- show a horizontal line segment (the Slider) at the top of the window
+- double-click the Slider to make an Endpoint (inclusion mode) at the click-place, a vertical segment
+- single-click the Slider to move the nearest Endpoint to the click-place, such that a click-and-drag continuously moves that Endpoint until released
+- right-click the Slider to toggle the nearest Endpoint between inclusion and exclusion mode
+- an inclusion-mode Endpoint shows its left side as lime-green, and the preceding Endpoint (if any) has its right side lime-green
+- an exclusion-mode Endpoint shows its left side as red, and the preceding Endpoint (if any) has its right side red
+- any change to the Slider/Endpoints leads an excerpt of the audio file to play, with time-endpoints determined by the Endpoints, such that the left end of the Slider is t = 0 and the right end is t = EOF
+- below the Slider is a two-row grid of text-boxes, columns matching intervals between Endpoints in their placement and widths
+- text-boxes shall be active in columns under/behind inclusion-mode Endpoints, and inactive in columns under/behind exclusion-mode Endpoints
