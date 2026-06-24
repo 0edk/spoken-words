@@ -7,7 +7,7 @@ import threading
 from aqt.utils import show_warning
 import numpy as np
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtGui import QCloseEvent, QColor, QPainter, QPen, QPixmap
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QBoxLayout, QFileDialog, QHBoxLayout, QLineEdit,
@@ -391,3 +391,8 @@ class ClipsViewDialog(TopologyDialog):
             )
             shutil.copy(tmp_path, dst)
             return clip_name
+
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        self._player.stop()
+        self._player.setSource(QUrl())   # releases the GStreamer pipeline
+        super().closeEvent(event)
