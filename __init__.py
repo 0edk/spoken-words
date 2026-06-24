@@ -1,5 +1,4 @@
 import itertools
-import math
 from typing import Iterable, Optional
 
 from anki.models import TemplateDict
@@ -8,7 +7,7 @@ import aqt
 
 from .flashcard_topology import indices, NoteTopology, TopologyDialog
 from .gui import ClipsViewDialog
-from .models import write_template, translate_template
+from .models import roundup, write_template, translate_template
 
 class ClipsTopology(NoteTopology):
     @staticmethod
@@ -33,12 +32,7 @@ class ClipsTopology(NoteTopology):
 
     @staticmethod
     def next_order(order: Optional[int] = None) -> int:
-        if order is None:
-            return 4
-        elif math.log2(order).is_integer():
-            return (3 * order) // 2
-        else:
-            return (4 * order) // 3
+        return roundup(order or 3, True)
 
     @staticmethod
     def measure_order(fields: dict[str, str]) -> int:

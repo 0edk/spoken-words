@@ -2,6 +2,14 @@ from anki.models import ModelManager, TemplateDict
 
 from .flashcard_topology import indices
 
+def roundup(n: int, step: bool) -> int:
+    shift: int = n.bit_length() - 2
+    trunc: int = n >> shift
+    if trunc << shift == n and not step:
+        return n
+    else:
+        return trunc + 1 << shift
+
 def delimited(word_count: int, i: int) -> str:
     return " ".join(
         f"[sound:start_beep.mp3] {{{{Clip {j}}}}} [sound:end_beep.mp3]"

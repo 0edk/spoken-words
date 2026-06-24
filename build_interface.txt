@@ -9,3 +9,11 @@ implement build_interface for a subclass of `TopologyDialog`:
 - any change to the Slider/Endpoints leads an excerpt of the audio file to play, with time-endpoints determined by the Endpoints, such that the left end of the Slider is t = 0 and the right end is t = EOF
 - below the Slider is a two-row grid of text-boxes, columns matching intervals between Endpoints in their placement and widths
 - text-boxes shall be active in columns under/behind inclusion-mode Endpoints, and inactive in columns under/behind exclusion-mode Endpoints
+
+implement `capture_fields`:
+- the order of the note is `roundup(inclusive_intervals, False)`, with `roundup(int, bool) -> int` already defined
+- populate `self.fields[f"Clip {i}"]`, `[f"Word {i}"]`, `[f"Translation {i}"]` with content based on the form's inclusive intervals for `1 <= i <= inclusive_intervals`, and with empty strings for `inclusive_intervals < i <= order`
+- the content for Word and Translation fields is the text in corresponding active text-boxes
+- save each sound excerpt marked by an inclusive Endpoint to a file `f"{fname}_{i}_{Word}.{ext}"` with fname.ext being the basename of the user-supplied original audio file, i being the 1-based index of this clip, and Word from the corresponding Word field
+- the sound-clip files go to collection.media/, by Anki's proper API call to add a media file if one exists, otherwise just naively put the file in ~/.local/share/Anki2/User 1/collection.media/
+- the content for Clip fields is `f"[sound:{full_excerpt_filename}]"`

@@ -1,3 +1,9 @@
+import os
+import shutil
+import subprocess
+import tempfile
+
+from aqt.utils import show_warning
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
@@ -7,6 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .flashcard_topology import TopologyDialog
+from .models import roundup
 
 _LIME = QColor(0, 255, 0)
 _RED  = QColor(220, 0, 0)
@@ -263,4 +270,61 @@ class ClipsViewDialog(TopologyDialog):
             self._stop_at_ms = 0
 
     def capture_fields(self) -> None:
-        pass
+        src_path = self._path_edit.text()
+        if not src_path:
+            return
+        eps = self._slider.endpoints
+        dur = self._duration_ms
+        bounds_ms = [0] + [int(ep.pos * dur) for ep in eps] + [dur]
+        inclusive_intervals = sum(1 for ep in eps if ep.inclusive)
+        order = roundup(inclusive_intervals, False)
+        fname, dot_ext = os.path.splitext(os.path.basename(src_path))
+        ext = dot_ext.lstrip(".")
+        clip_idx = 0
+        tmp_dir = tempfile.mkdtemp()
+        for i, ep in enumerate(eps):
+            if not ep.inclusive:
+                continue
+            clip_idx += 1
+            word = self._grid._word_edits[i].text()
+            trans = self._grid._trans_edits[i].text()
+            clip_name = f"{fname}_{clip_idx}_{word}.{ext}"
+            actual_name = self._save_clip(
+                src_path, bounds_ms[i], bounds_ms[i + 1], clip_name, tmp_dir
+            )
+            self.fields[f"Clip {clip_idx}"] = f"[sound:{actual_name}]"
+            self.fields[f"Word {clip_idx}"] = word
+            self.fields[f"Translation {clip_idx}"] = trans
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        for i in range(inclusive_intervals + 1, order + 1):
+            self.fields[f"Clip {i}"] = ""
+            self.fields[f"Word {i}"] = ""
+            self.fields[f"Translation {i}"] = ""
+
+    def _save_clip(
+        self, src: str, start_ms: int, end_ms: int,
+        clip_name: str, tmp_dir: str
+    ) -> str:
+        col = self.mw.col
+        # basename drives add_file's stored name
+        tmp_path = os.path.join(tmp_dir, clip_name)
+        ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
+        subprocess.run(
+            [ffmpeg, "-y", "-i", src,
+             "-ss", f"{start_ms / 1000:.3f}",
+             "-to", f"{end_ms / 1000:.3f}",
+             "-c", "copy", tmp_path],
+            check=True,
+            capture_output=True,
+        )
+        try:
+            return col.media.add_file(tmp_path)
+        except Exception:
+            dst = os.path.join(os.path.expanduser(
+                "~/.local/share/Anki2/User 1/collection.media"
+            ), clip_name)
+            show_warning(
+                f"Couldn't add media file; using naive default: {dst}\n"
+            )
+            shutil.copy(tmp_path, dst)
+            return clip_name
