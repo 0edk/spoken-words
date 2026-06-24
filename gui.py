@@ -2,10 +2,12 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 
 from aqt.utils import show_warning
+import numpy as np
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter
+from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QBoxLayout, QFileDialog, QHBoxLayout, QLineEdit,
@@ -48,6 +50,7 @@ class SliderWidget(QWidget):
         self._right_click_ep: Endpoint | None = None
         self._prev_pos = 0.0
         self._dragging = False
+        self._wf_pixmap: QPixmap | None = None
 
     # ── geometry ─────────────────────────────────────────────────────
 
@@ -70,6 +73,8 @@ class SliderWidget(QWidget):
         ept = (h - eph) // 2
         xs     = [self._to_x(ep.pos) for ep in self.endpoints]
         bounds = [0] + xs + [w]
+        if self._wf_pixmap is not None:
+            p.drawPixmap(0, 0, self._wf_pixmap)
         for i in range(len(bounds) - 1):
             # Interval i is governed by endpoints[i] (rightmost governs);
             # interval past the last endpoint is always exclusive (red).
@@ -81,6 +86,34 @@ class SliderWidget(QWidget):
         for x in xs:
             p.fillRect(x - self._EP_W // 2, ept, self._EP_W, eph, _DARK)
         p.end()
+
+    def set_waveform(
+        self, centroids: np.ndarray, volumes: np.ndarray
+    ) -> None:
+        self._wf_pixmap = self._render_waveform(centroids, volumes)
+        self.update()
+
+    def _render_waveform(
+        self, centroids: np.ndarray, volumes: np.ndarray
+    ) -> QPixmap:
+        w, h = max(self.width(), 1), max(self.height(), 1)
+        pm = QPixmap(w, h)
+        pm.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        n = len(centroids)
+        pen = QPen()
+        pen.setWidthF(1.5)
+        for i in range(n - 1):
+            alpha = int(volumes[i] * 210 + 45)
+            pen.setColor(QColor(60, 120, 220, alpha))
+            p.setPen(pen)
+            p.drawLine(
+                int(i       / n * w), int((1.0 - centroids[i])     * h),
+                int((i + 1) / n * w), int((1.0 - centroids[i + 1]) * h),
+            )
+        p.end()
+        return pm
 
     # ── mouse ─────────────────────────────────────────────────────────
 
@@ -198,8 +231,37 @@ class IntervalGridWidget(QWidget):
             we.setGeometry(x0,     0, x1 - x0, row_h)
             te.setGeometry(x0, row_h, x1 - x0, row_h)
 
+def _compute_waveform(path: str) -> tuple[np.ndarray, np.ndarray]:
+    ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
+    SR = 8000
+    raw = subprocess.run(
+        [ffmpeg, "-i", path, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
+        capture_output=True, check=True,
+    ).stdout
+    samples = np.frombuffer(raw, dtype=np.float32)
+    N = 512
+    hop = N // 2
+    idx = np.arange(0, len(samples) - N, hop)
+    if len(idx) > 600: # cap for paint perf
+        idx = idx[np.linspace(0, len(idx) - 1, 600, dtype=int)]
+    freqs = np.fft.rfftfreq(N, d=1.0 / SR)
+    centroids = np.empty(len(idx), np.float32)
+    volumes = np.empty(len(idx), np.float32)
+    for i, s in enumerate(idx):
+        frame = samples[s : s + N]
+        volumes[i] = float(np.sqrt(np.mean(frame ** 2)))
+        mag = np.abs(np.fft.rfft(frame))
+        tot = float(mag.sum())
+        centroids[i] = float((freqs * mag).sum() / tot) if tot > 1e-9 else 0.0
+    cmin, cmax = centroids.min(), centroids.max()
+    centroids[:] = (centroids - cmin) / (cmax - cmin) if cmax > cmin else 0.0
+    vmax = volumes.max()
+    volumes[:] = volumes / vmax if vmax > 0.0 else 0.0
+    return centroids, volumes
 
 class ClipsViewDialog(TopologyDialog):
+    _waveform_ready = pyqtSignal(object, object)
+
     def build_interface(self, layout: QBoxLayout) -> None:
         # file picker
         row = QHBoxLayout()
@@ -217,6 +279,7 @@ class ClipsViewDialog(TopologyDialog):
         self._slider.positions_updated.connect(self._on_positions_updated)
         self._slider.mouse_released.connect(self._on_release)
         layout.addWidget(self._slider)
+        self._waveform_ready.connect(self._on_waveform_ready)
         # grid
         self._grid = IntervalGridWidget()
         layout.addWidget(self._grid)
@@ -239,6 +302,9 @@ class ClipsViewDialog(TopologyDialog):
         if path:
             self._path_edit.setText(path)
             self._player.setSource(QUrl.fromLocalFile(path))
+            threading.Thread(
+                target=self._load_waveform_bg, args=(path,), daemon=True
+            ).start()
 
     def _on_duration_changed(self, dur: int) -> None:
         if dur > 0:
@@ -268,6 +334,12 @@ class ClipsViewDialog(TopologyDialog):
         if self._stop_at_ms and pos_ms >= self._stop_at_ms:
             self._player.pause()
             self._stop_at_ms = 0
+
+    def _load_waveform_bg(self, path: str) -> None:
+        self._waveform_ready.emit(*_compute_waveform(path))
+
+    def _on_waveform_ready(self, centroids, volumes) -> None:
+        self._slider.set_waveform(centroids, volumes)
 
     def capture_fields(self) -> None:
         src_path = self._path_edit.text()
