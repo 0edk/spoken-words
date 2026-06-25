@@ -12,9 +12,8 @@ def roundup(n: int, step: bool) -> int:
 
 def delimited(word_count: int, i: int) -> str:
     return " ".join(
-        f"[sound:start_beep.mp3] {{{{Clip {j}}}}} [sound:end_beep.mp3]"
-        if j == i else f"{{{{Clip {j}}}}}" for j in indices(word_count)
-    )
+        f"{{{{Clip {j}}}}}" for j in indices(word_count)
+    ) + f" : {{{{Clip {i}}}}}"
 
 def write_template(
     manager: ModelManager, word_count: int, i: int

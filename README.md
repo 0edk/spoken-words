@@ -19,7 +19,6 @@ cd linearithmic-toset-master
 # GitHub wraps a directory layer in ZIPs, which Anki needs not
 zip linearithmic_toset.zip *
 # Anki -> top menu -> Tools -> Add-ons -> Install from file... -> find that zip you just made
-cp start_beep.mp3 end_beep.mp3 .../collection.media/ # import beep clips as media items
 ```
 
 You will need [NumPy]( https://numpy.org/ ) and [FFmpeg]( https://ffmpeg.org/ ) installed for the add-on to work as intended.
@@ -34,15 +33,15 @@ Existing cards go blank, and [can be readily deleted]( https://docs.ankiweb.net/
 
 In either kind of card, you hear the full sentence spoken from the clips you saved.
 One word or phrase (one clip) is the target of your focus in any card.
-This target word is indicated as such with beeps right before and after it, which are respectively high- and low-pitched.
+This target word is indicated as such by being repeated at the end of the sentence.
 
 In a Write card, you see the instruction &#x270E; (pencil), and your task is to recognise the target word as spoken:
-> Q: (spoken) la educación en este (high beep) mundo (low beep) me decepciona (end) &#x270E;
+> Q: (spoken) la educación en este mundo me decepciona : mundo (end) &#x270E;
 >
 > A: mundo
 
 In a Translate card, you see the instruction &#x21C4; (arrows), and your task is to recall what the target word means in another language, normally your native one:
-> Q: (spoken) la educación en este (high beep) mundo (low beep) me decepciona (end) &#x21C4;
+> Q: (spoken) la educación en este mundo me decepciona : mundo (end) &#x21C4;
 >
 > A: world
 
