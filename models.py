@@ -23,7 +23,7 @@ def write_template(
     template["qfmt"] = (f"{{{{#Clip {i}}}}}" + delimited(
         word_count, i
     ) + f" <strong>&#x270E;</strong>{{{{/Clip {i}}}}}")
-    template["afmt"] = ("{{{{FrontSide}}}}\n<hr id=answer>\n"
+    template["afmt"] = ("{{FrontSide}}\n<hr id=answer>\n"
         f"{{{{Word {i}}}}}")
     return template
 
@@ -34,6 +34,6 @@ def translate_template(
     template["qfmt"] = (f"{{{{#Clip {i}}}}}" + delimited(
         word_count, i
     ) + f" <strong>&#x21C4;</strong>{{{{/Clip {i}}}}}")
-    template["afmt"] = ("{{{{FrontSide}}}}\n<hr id=answer>\n"
+    template["afmt"] = ("{{FrontSide}}\n<hr id=answer>\n"
         f"{{{{Translation {i}}}}}")
     return template
