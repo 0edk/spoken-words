@@ -3,7 +3,7 @@ import numpy as np
 
 _LIME = QColor(0, 255, 0)
 _RED  = QColor(220, 0, 0)
-_DARK = QColor(40, 40, 40)
+_DARK = QColor(60, 60, 120)
 
 
 class Endpoint:
