@@ -7,6 +7,8 @@ Notes of the new [types]( https://docs.ankiweb.net/getting-started.html#note-typ
 These notes make two kinds of [cards]( https://docs.ankiweb.net/getting-started.html#notes--fields ): Write and Translate.
 The add-on centres around a GUI to conveniently make these notes, which creates the note types as needed.
 
+![English-Español "Education disappoints me" in GUI editor]( decepciona.png )
+
 ## Setup
 Install it from AnkiWeb, when I post it there.
 Until then, download the ZIP and install it manually with Anki's menu:
@@ -35,14 +37,14 @@ One word or phrase (one clip) is the target of your focus in any card.
 This target word is indicated as such with beeps right before and after it, which are respectively high- and low-pitched.
 
 In a Write card, you see the instruction &#x270E; (pencil), and your task is to recognise the target word as spoken:
-> Q: (spoken) Puedo comer (high beep) vidrio (low beep) no me duele. (end) &#x270E;
+> Q: (spoken) la educación en este (high beep) mundo (low beep) me decepciona (end) &#x270E;
 >
-> A: vidrio
+> A: mundo
 
 In a Translate card, you see the instruction &#x21C4; (arrows), and your task is to recall what the target word means in another language, normally your native one:
-> Q: (spoken) Puedo comer (high beep) vidrio (low beep) no me duele. (end) &#x21C4;
+> Q: (spoken) la educación en este (high beep) mundo (low beep) me decepciona (end) &#x21C4;
 >
-> A: glass
+> A: world
 
 ## Editor
 In the top menu's Tools category will be "Edit Sentence Listening".
